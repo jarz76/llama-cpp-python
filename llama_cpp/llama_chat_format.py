@@ -3494,6 +3494,40 @@ class MiniCPMv26ChatHandler(Llava15ChatHandler):
         "{% endif %}"
     )
 
+class InternVL3ChatHandler(Llava15ChatHandler):
+    # Chat Format:
+    # '<bos><start_of_turn>user\n{system_prompt}\n\n{prompt}<end_of_turn>\n<start_of_turn>model\n'
+
+    DEFAULT_SYSTEM_MESSAGE = "You are a helpful assistant."
+
+    CHAT_FORMAT = (
+        # system prompt (script override or fallback)
+        "{% if messages[0]['role'] == 'system' %}"
+        "{{ '<|im_start|>system\\n' + messages[0]['content'] + '<|im_end|>\\n' }}"
+        "{% else %}"
+        "{{ '<|im_start|>system\\n' + self.DEFAULT_SYSTEM_MESSAGE + '<|im_end|>\\n' }}"
+        "{% endif %}"
+
+        # loop over user/assistant
+        "{% for message in messages[1:] %}"
+        "{{ '<|im_start|>' + message.role + '\\n' }}"
+        "{% if message['content'] is string %}"
+        "{{ message['content'] }}"
+        "{% elif message['content'] is iterable %}"
+        "{% for item in message['content'] %}"
+        "{% if item['type'] == 'text' %}{{ item['text'] }}{% endif %}"
+        "{% if item['type'] == 'image_url' and item['image_url'] is string %}{{ item['image_url'] }}{% endif %}"
+        "{% if item['type'] == 'image_url' and item['image_url'] is mapping %}{{ item['image_url']['url'] }}{% endif %}"
+        "{% endfor %}"
+        "{% endif %}"
+        "{{ '<|im_end|>\\n' }}"
+        "{% endfor %}"
+
+        # generation
+        "{% if add_generation_prompt %}{{ '<|im_start|>assistant\\n' }}{% endif %}"
+    )
+
+
 
 class Qwen25VLChatHandler(Llava15ChatHandler):
     DEFAULT_SYSTEM_MESSAGE = "You are a helpful assistant."
